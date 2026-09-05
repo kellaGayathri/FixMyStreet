@@ -1,7 +1,37 @@
-import { Complaint, ComplaintStatus, Priority, Department } from "../types";
+import { Complaint, ComplaintStatus, Priority, Department, User } from "../types";
 
 const STORAGE_KEY = "fixmystreet_complaints_v2";
 const MY_REPORTS_KEY = "fixmystreet_citizen_reports_v2";
+const USERS_KEY = "fixmystreet_users_v2";
+const CURRENT_USER_KEY = "fixmystreet_current_user_v2";
+
+interface StoredAccount extends User {
+  passwordHash: string;
+}
+
+export const DEFAULT_USERS: StoredAccount[] = [
+  {
+    id: "usr_citizen_01",
+    name: "Rahul Sharma",
+    email: "rahul.s@example.com",
+    phone: "+91 98450 12345",
+    role: "citizen",
+    ward: "Ward 4 - Central Zone",
+    joinedDate: "2026-07-15",
+    passwordHash: "password123",
+  },
+  {
+    id: "usr_admin_01",
+    name: "Inspector Rajesh Verma",
+    email: "admin@fixmystreet.gov",
+    phone: "+91 94480 88990",
+    role: "admin",
+    ward: "Central Municipal Office",
+    department: "Roads & Bridges Department",
+    joinedDate: "2026-01-10",
+    passwordHash: "admin123",
+  },
+];
 
 export const SAMPLE_COMPLAINTS: Complaint[] = [
   {
@@ -364,8 +394,129 @@ export const StorageService = {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_COMPLAINTS));
       localStorage.setItem(MY_REPORTS_KEY, JSON.stringify(["FMS-2026-001", "FMS-2026-003"]));
+      localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
+      localStorage.removeItem(CURRENT_USER_KEY);
     } catch (e) {
       console.error("Reset error:", e);
     }
+  },
+
+  /* ---------------- AUTHENTICATION & USER MANAGEMENT ---------------- */
+  getAccounts(): StoredAccount[] {
+    try {
+      const data = localStorage.getItem(USERS_KEY);
+      if (!data) {
+        localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
+        return DEFAULT_USERS;
+      }
+      return JSON.parse(data);
+    } catch {
+      return DEFAULT_USERS;
+    }
+  },
+
+  getCurrentUser(): User | null {
+    try {
+      const data = localStorage.getItem(CURRENT_USER_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+      // Default to logged-out initially, or user can click quick demo login
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  setCurrentUser(user: User | null) {
+    try {
+      if (user) {
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+      } else {
+        localStorage.removeItem(CURRENT_USER_KEY);
+      }
+    } catch (e) {
+      console.error("Failed to set current user:", e);
+    }
+  },
+
+  login(email: string, password: string): { success: boolean; user?: User; error?: string } {
+    const cleanEmail = (email || "").trim().toLowerCase();
+    const accounts = this.getAccounts();
+    const found = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
+
+    if (!found) {
+      return {
+        success: false,
+        error: "No account found with this email address.",
+      };
+    }
+
+    if (found.passwordHash !== password) {
+      return {
+        success: false,
+        error: "Invalid password. Please check your credentials.",
+      };
+    }
+
+    const { passwordHash, ...userProfile } = found;
+    this.setCurrentUser(userProfile);
+    return {
+      success: true,
+      user: userProfile,
+    };
+  },
+
+  register(data: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+    role: "citizen" | "admin";
+    ward?: string;
+    department?: Department;
+  }): { success: boolean; user?: User; error?: string } {
+    const cleanEmail = (data.email || "").trim().toLowerCase();
+    if (!cleanEmail || !data.name.trim() || !data.password) {
+      return { success: false, error: "Please provide all required fields." };
+    }
+
+    const accounts = this.getAccounts();
+    if (accounts.some((a) => a.email.toLowerCase() === cleanEmail)) {
+      return {
+        success: false,
+        error: "An account with this email address already exists. Please sign in instead.",
+      };
+    }
+
+    const newUser: StoredAccount = {
+      id: `usr_${Date.now()}`,
+      name: data.name.trim(),
+      email: cleanEmail,
+      phone: data.phone?.trim() || "",
+      role: data.role,
+      ward: data.ward?.trim() || (data.role === "citizen" ? "Ward 4 - Central Zone" : "City Administration"),
+      department: data.department,
+      joinedDate: new Date().toISOString().slice(0, 10),
+      passwordHash: data.password,
+    };
+
+    const updated = [...accounts, newUser];
+    try {
+      localStorage.setItem(USERS_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error("Failed to persist new user:", e);
+    }
+
+    const { passwordHash, ...userProfile } = newUser;
+    this.setCurrentUser(userProfile);
+    return {
+      success: true,
+      user: userProfile,
+    };
+  },
+
+  logout(): void {
+    this.setCurrentUser(null);
   },
 };

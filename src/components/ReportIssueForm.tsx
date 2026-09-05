@@ -20,6 +20,7 @@ import {
   Department,
   AIDetectionResult,
   Complaint,
+  User,
 } from "../types";
 import { CivicMapView } from "./CivicMapView";
 import { AIService } from "../services/aiService";
@@ -28,6 +29,7 @@ import { StorageService } from "../services/storage";
 interface ReportIssueFormProps {
   onSuccess: (complaint: Complaint) => void;
   onNavigateToTrack: (id: string) => void;
+  currentUser?: User | null;
 }
 
 const ISSUE_CATEGORIES: { id: IssueCategory; label: string; icon: string; desc: string }[] = [
@@ -76,6 +78,7 @@ const DEPARTMENT_MAP: Record<IssueCategory, Department> = {
 export const ReportIssueForm: React.FC<ReportIssueFormProps> = ({
   onSuccess,
   onNavigateToTrack,
+  currentUser,
 }) => {
   // Form State
   const [category, setCategory] = useState<IssueCategory>("Pothole");
@@ -84,8 +87,8 @@ export const ReportIssueForm: React.FC<ReportIssueFormProps> = ({
   const [locationAddress, setLocationAddress] = useState("Central Park West Gate");
   const [lat, setLat] = useState<number>(12.9716);
   const [lng, setLng] = useState<number>(77.5946);
-  const [citizenName, setCitizenName] = useState("");
-  const [citizenPhone, setCitizenPhone] = useState("");
+  const [citizenName, setCitizenName] = useState(currentUser?.name || "");
+  const [citizenPhone, setCitizenPhone] = useState(currentUser?.phone || "");
   const [priority, setPriority] = useState<Priority>("High");
 
   // AI State

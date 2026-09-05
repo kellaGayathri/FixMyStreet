@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   ActiveView,
   Complaint,
+  User,
 } from "./types";
 import { StorageService } from "./services/storage";
 import { Navbar } from "./components/Navbar";
@@ -12,6 +13,8 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { CitizenDashboard } from "./components/CitizenDashboard";
 import { ComplaintDetailsModal } from "./components/ComplaintDetailsModal";
 import { AboutModal } from "./components/AboutModal";
+import { LoginPage } from "./components/LoginPage";
+import { RegisterPage } from "./components/RegisterPage";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -20,6 +23,8 @@ import {
   BookOpen,
   PhoneCall,
   Activity,
+  UserCheck,
+  LogIn,
 } from "lucide-react";
 
 export default function App() {
@@ -29,6 +34,7 @@ export default function App() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => StorageService.getCurrentUser());
 
   // Initialize and load complaints
   const refreshComplaints = () => {
@@ -58,6 +64,36 @@ export default function App() {
     showToast(`Complaint ${newComplaint.complaintId} successfully lodged!`);
   };
 
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    showToast(`Welcome back, ${user.name}!`);
+    if (user.role === "admin") {
+      setActiveView("admin-dashboard");
+    } else {
+      setActiveView("citizen-dashboard");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleRegisterSuccess = (user: User) => {
+    setCurrentUser(user);
+    showToast(`Account created! Welcome to FixMyStreet, ${user.name}`);
+    if (user.role === "admin") {
+      setActiveView("admin-dashboard");
+    } else {
+      setActiveView("citizen-dashboard");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleLogout = () => {
+    StorageService.logout();
+    setCurrentUser(null);
+    showToast("You have been signed out.");
+    setActiveView("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-600 selection:text-white font-sans antialiased">
       {/* Toast Notification */}
@@ -80,6 +116,8 @@ export default function App() {
         }}
         openAboutModal={() => setIsAboutModalOpen(true)}
         complaintCount={complaints.length}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* Main View Area */}
@@ -100,6 +138,7 @@ export default function App() {
           <ReportIssueForm
             onSuccess={handleReportSuccess}
             onNavigateToTrack={handleNavigateToTrack}
+            currentUser={currentUser}
           />
         )}
 
@@ -122,6 +161,11 @@ export default function App() {
             }}
             onNavigateToTrack={handleNavigateToTrack}
             onSelectComplaint={(c) => setSelectedComplaint(c)}
+            currentUser={currentUser}
+            onNavigateToLogin={() => {
+              setActiveView("login");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
           />
         )}
 
@@ -133,6 +177,39 @@ export default function App() {
               showToast("Municipal records refreshed.");
             }}
             onSelectComplaint={(c) => setSelectedComplaint(c)}
+            currentUser={currentUser}
+            onNavigateToLogin={() => {
+              setActiveView("login");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        )}
+
+        {activeView === "login" && (
+          <LoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onNavigateToRegister={() => {
+              setActiveView("register");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onNavigateHome={() => {
+              setActiveView("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        )}
+
+        {activeView === "register" && (
+          <RegisterPage
+            onRegisterSuccess={handleRegisterSuccess}
+            onNavigateToLogin={() => {
+              setActiveView("login");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onNavigateHome={() => {
+              setActiveView("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
           />
         )}
       </main>
@@ -225,6 +302,32 @@ export default function App() {
                     className="text-slate-600 hover:text-emerald-600 transition"
                   >
                     Municipal Admin Portal
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveView("login");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="text-slate-600 hover:text-emerald-600 transition flex items-center gap-1"
+                  >
+                    <LogIn className="w-3 h-3 text-slate-400" />
+                    Sign In to Account
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveView("register");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="text-slate-600 hover:text-emerald-600 transition flex items-center gap-1"
+                  >
+                    <UserCheck className="w-3 h-3 text-slate-400" />
+                    Register Citizen / Official
                   </button>
                 </li>
               </ul>

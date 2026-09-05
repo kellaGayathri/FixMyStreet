@@ -61,9 +61,22 @@ export interface Complaint {
   adminNotes?: string;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: "citizen" | "admin";
+  ward?: string;
+  department?: Department;
+  joinedDate: string;
+}
+
 export type ActiveView =
   | "home"
   | "report"
   | "track"
   | "citizen-dashboard"
-  | "admin-dashboard";
+  | "admin-dashboard"
+  | "login"
+  | "register";

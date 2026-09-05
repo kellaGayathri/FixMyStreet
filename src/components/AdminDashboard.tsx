@@ -25,6 +25,7 @@ import {
   IssueCategory,
   Priority,
   Department,
+  User,
 } from "../types";
 import { StorageService } from "../services/storage";
 import { CivicMapView } from "./CivicMapView";
@@ -33,6 +34,8 @@ interface AdminDashboardProps {
   complaints: Complaint[];
   onRefresh: () => void;
   onSelectComplaint: (complaint: Complaint) => void;
+  currentUser?: User | null;
+  onNavigateToLogin?: () => void;
 }
 
 const DEPARTMENTS_LIST: Department[] = [
@@ -49,6 +52,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   complaints,
   onRefresh,
   onSelectComplaint,
+  currentUser,
+  onNavigateToLogin,
 }) => {
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,7 +68,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newDepartment, setNewDepartment] = useState<Department>("Roads & Bridges Department");
   const [newPriority, setNewPriority] = useState<Priority>("High");
   const [updateNote, setUpdateNote] = useState("");
-  const [officerName, setOfficerName] = useState("Municipal Field Officer");
+  const [officerName, setOfficerName] = useState(
+    currentUser?.role === "admin" ? currentUser.name : "Inspector Rajesh Verma (Zone 3)"
+  );
 
   // Summary Metrics
   const totalCount = complaints.length;
@@ -160,7 +167,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div id="admin-dashboard-page" className="max-w-7xl mx-auto my-8 px-4 sm:px-6 lg:px-8">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 text-blue-700 text-xs font-bold uppercase tracking-wider mb-1">
             <Building2 className="w-4 h-4" />
@@ -195,6 +202,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             Reset Data
           </button>
         </div>
+      </div>
+
+      {/* Officer Status Strip */}
+      <div className="mb-6 px-4 py-2.5 rounded-xl border bg-white flex flex-wrap items-center justify-between gap-3 text-xs">
+        {currentUser?.role === "admin" ? (
+          <div className="flex items-center gap-2 text-blue-900">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold">Logged-in Officer:</span>
+            <span>{currentUser.name}</span>
+            <span className="text-slate-400">•</span>
+            <span className="text-slate-600">{currentUser.department || "Municipal Field Inspection"}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="font-semibold">Municipal Public Inspection Mode:</span>
+            <span>Open reviewer access for academic capstone demonstration.</span>
+          </div>
+        )}
+
+        {(!currentUser || currentUser.role !== "admin") && onNavigateToLogin && (
+          <button
+            type="button"
+            onClick={onNavigateToLogin}
+            className="text-xs font-bold text-blue-700 hover:text-blue-800 underline"
+          >
+            Sign in as Municipal Official →
+          </button>
+        )}
       </div>
 
       {/* KPI Summary Cards */}

@@ -9,8 +9,9 @@ import {
   MapPin,
   Calendar,
   Sparkles,
+  LogIn,
 } from "lucide-react";
-import { Complaint } from "../types";
+import { Complaint, User } from "../types";
 import { StorageService } from "../services/storage";
 
 interface CitizenDashboardProps {
@@ -18,6 +19,8 @@ interface CitizenDashboardProps {
   onNavigateToReport: () => void;
   onNavigateToTrack: (id: string) => void;
   onSelectComplaint: (complaint: Complaint) => void;
+  currentUser?: User | null;
+  onNavigateToLogin?: () => void;
 }
 
 export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
@@ -25,13 +28,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   onNavigateToReport,
   onNavigateToTrack,
   onSelectComplaint,
+  currentUser,
+  onNavigateToLogin,
 }) => {
   const [filter, setFilter] = useState<string>("All");
 
   const myReportIds = StorageService.getCitizenReportIds();
-  const myComplaints = allComplaints.filter((c) =>
-    myReportIds.includes(c.complaintId)
-  );
+  const myComplaints = allComplaints.filter((c) => {
+    if (currentUser?.email && c.citizenEmail?.toLowerCase() === currentUser.email.toLowerCase()) {
+      return true;
+    }
+    return myReportIds.includes(c.complaintId);
+  });
 
   const displayedComplaints = myComplaints.filter((c) => {
     if (filter === "All") return true;
@@ -40,18 +48,40 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
   return (
     <div id="citizen-dashboard-page" className="max-w-5xl mx-auto my-8 px-4">
+      {/* Auth Banner if logged out */}
+      {!currentUser && onNavigateToLogin && (
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-emerald-900">
+            <UserCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div>
+              <span className="font-bold">Sync your reports across devices:</span> Sign in to access your complete filing history, official updates, and municipal response notes.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onNavigateToLogin}
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition shrink-0 shadow-2xs"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            Sign In Now
+          </button>
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-1">
             <UserCheck className="w-4 h-4" />
-            Citizen Self-Service Dashboard
+            {currentUser ? `Citizen Portal • ${currentUser.name}` : "Citizen Self-Service Dashboard"}
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-display">
             My Civic Reports
           </h1>
           <p className="text-slate-600 text-sm mt-1">
-            Track and manage all issues submitted from this device.
+            {currentUser?.ward
+              ? `Registered under ${currentUser.ward}. Track all verified municipal repairs.`
+              : "Track and manage all issues submitted from this session and device."}
           </p>
         </div>
 
