@@ -1,0 +1,6 @@
+{
+  "name": "FixMyStreet",
+  "description": "Centralized civic issue reporting and municipal management platform with AI issue classification and complaint tracking.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
